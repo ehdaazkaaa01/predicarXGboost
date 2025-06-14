@@ -1,3 +1,13 @@
+import xgboost as xgb
+import joblib
+
+# Load model
+model = xgb.XGBRegressor()
+model.load_model("xgb_model.json")
+
+# Load encoder
+encoder = joblib.load("encoder.joblib")
+
 import pickle
 import streamlit as st
 import numpy as np
