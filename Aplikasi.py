@@ -4,9 +4,45 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 
-# Load model, encoder, feature names, metrics, and test data
+# ================== SETUP STYLE ==================
+st.set_page_config(page_title="Prediksi Harga Mobil Toyota", layout="centered")
+
+# Custom CSS untuk UI navy-kuning
+st.markdown("""
+    <style>
+        body {
+            background-color: #0a1f44;
+            color: #ffdd00;
+        }
+        .stApp {
+            background-color: #0a1f44;
+        }
+        .css-1d391kg {  /* title */
+            color: #ffdd00 !important;
+        }
+        h1, h2, h3, h4 {
+            color: #ffdd00 !important;
+        }
+        label, .stSelectbox label, .stNumberInput label {
+            color: #ffffff !important;
+        }
+        .stButton>button {
+            background-color: #ffdd00;
+            color: #0a1f44;
+            font-weight: bold;
+            border-radius: 10px;
+        }
+        .stButton>button:hover {
+            background-color: #f8e473;
+            color: #000;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# ================== LOAD MODEL & DATA ==================
 model = pickle.load(open('prediksi_hargamobil.sav', 'rb'))
 encoder = pickle.load(open('encoder.pkl', 'rb'))
+
 with open('feature_names.pkl', 'rb') as f:
     feature_names = pickle.load(f)
 with open('metrics.pkl', 'rb') as f:
@@ -16,11 +52,14 @@ with open('X_test.pkl', 'rb') as f:
 with open('y_test.pkl', 'rb') as f:
     y_test = pickle.load(f)
 
-st.title('Prediksi Harga Mobil Toyota')
-st.image('mobil.png', use_column_width=True)
+# ================== TITLE & IMAGE ==================
+st.title('🚗 Prediksi Harga Mobil Toyota Bekas')
+st.image('mobil.png', use_container_width=True)
 
-# Input fields
+# ================== INPUT FORM ==================
 with st.container():
+    st.subheader("📋 Masukkan Data Mobil")
+
     car_models = sorted(list(set(pd.read_csv('toyota.csv')['model'].unique())))
     selected_model = st.selectbox('Model Mobil', car_models)
 
@@ -36,14 +75,16 @@ with st.container():
     with col2:
         mileage = st.number_input('Jarak Tempuh (KM)', min_value=0)
 
+# ================== FORMAT ==================
 def format_price(number):
     return "{:,.0f}".format(number).replace(",", ".")
 
-if st.button('Prediksi Harga'):
+# ================== PREDIKSI ==================
+if st.button('🔮 Prediksi Harga'):
     if year == 0 or mileage == 0:
-        st.warning('Mohon lengkapi semua data input!')
+        st.warning('⚠️ Mohon lengkapi semua data input!')
     else:
-        with st.spinner('Memproses prediksi...'):
+        with st.spinner('🚀 Memproses prediksi...'):
             try:
                 # Prepare categorical features
                 categorical_features = pd.DataFrame({
@@ -51,30 +92,33 @@ if st.button('Prediksi Harga'):
                     'transmission': [selected_transmission],
                     'fuelType': [selected_fuel_type]
                 })
-                
+
                 # Encode categorical features
                 encoded_categorical = encoder.transform(categorical_features)
-                
+
                 # Prepare numerical features
                 numerical_features = np.array([[year, mileage]])
-                
+
                 # Combine features
                 prediction_input = np.hstack((numerical_features, encoded_categorical))
-                
+
                 # Make prediction
                 prediction = model.predict(prediction_input)[0]
-                
+
                 # Convert to Rupiah
                 prediction_rupiah = prediction * 19500
-                
+
                 # Display prediction
-                st.success('Prediksi Selesai!')
-                st.write('Prediksi Harga Mobil (IDR):', f"Rp {format_price(prediction_rupiah)}")
-                
-                # Display precomputed metrics
-                st.write(f"Mean Absolute Error (MAE): {metrics['mae']:.2f}")
-                st.write(f"Mean Absolute Percentage Error (MAPE): {metrics['mape']:.2f}%")
-                st.write(f"Akurasi Model: {metrics['accuracy']:.2f}%")
-                
+                st.success('✅ Prediksi Selesai!')
+                st.subheader('💰 Prediksi Harga Mobil (IDR):')
+                st.markdown(f"<h2 style='color:#ffdd00;'>Rp {format_price(prediction_rupiah)}</h2>", unsafe_allow_html=True)
+
+                # Display metrics
+                st.write("---")
+                st.subheader("📊 Evaluasi Model")
+                st.write(f"🔹 Mean Absolute Error (MAE): **{metrics['mae']:.2f}**")
+                st.write(f"🔹 Mean Absolute Percentage Error (MAPE): **{metrics['mape']:.2f}%**")
+                st.write(f"🔹 Akurasi Model: **{metrics['accuracy']:.2f}%**")
+
             except Exception as e:
-                st.error(f'Terjadi kesalahan: {str(e)}')
+                st.error(f'❌ Terjadi kesalahan: {str(e)}')
